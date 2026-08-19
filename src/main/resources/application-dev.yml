@@ -1,0 +1,57 @@
+# Local development profile. Activate with SPRING_PROFILES_ACTIVE=dev (or --spring.profiles.active=dev).
+# Favors visibility and convenience over safety: verbose logging, permissive CORS, auto schema updates.
+spring:
+  # Flyway only governs prod (see application-prod.yml) — dev manages its own schema via
+  # ddl-auto: update below, so migration files don't need to be kept in lockstep with every
+  # local schema tweak. Before merging a change, still add/update a migration for prod.
+  flyway:
+    enabled: false
+  jpa:
+    hibernate:
+      # Automatically updates the database schema when JPA entities change.
+      # This is convenient for local development. Never use "update" or "create-drop"
+      # outside dev — application-prod.yml uses Flyway + ddl-auto: validate instead.
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        highlight_sql: true
+  web:
+    error:
+      include-message: always
+      include-binding-errors: always
+      include-stacktrace: never
+
+app:
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "http://localhost:5173"
+    allow-credentials: false
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+logging:
+  # Feeds logback-spring.xml's ${LOG_FILE} property — gives dev its own file base name, separate
+  # from whatever prod uses. No extension: logback-spring.xml appends -yyyy-MM-dd.log so each
+  # day gets its own dated file, while keeping the same 90-day rolling retention policy.
+  file:
+    name: logs/blog-dev
+  level:
+    root: INFO
+    com.kshrd.blog: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always

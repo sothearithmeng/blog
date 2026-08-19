@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Boot's standard property/converter definitions (colors, charset, exception formatting). -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+    <!-- logging.level.* in application*.yml still overrides these levels after this file loads —
+         this file only controls format/output, not verbosity. -->
+
+    <!-- Override with the LOG_FILE env var to change the path/base name (e.g. /var/log/blog/app in
+         a container) — logging.file.name in application*.yml sets this per profile. Each day gets
+         its own file named by date (e.g. blog-dev-2026-08-19.log); files past 90 days old are
+         deleted automatically, so logs "expire" instead of growing the disk forever. totalSizeCap
+         is a second safety net in case volume spikes within that window. -->
+    <property name="LOG_FILE" value="${LOG_FILE:-logs/blog}" />
+    <property name="LOG_FILE_MAX_HISTORY_DAYS" value="90" />
+    <property name="LOG_FILE_TOTAL_SIZE_CAP" value="1GB" />
+
+    <!-- dev (and anything without a prod-style profile): human-readable, colored console output,
+         plus the same content written to a rotating file. -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(---){faint} %clr([%-15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx</pattern>
+                <charset>${CONSOLE_LOG_CHARSET}</charset>
+            </encoder>
+        </appender>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>${LOG_FILE_MAX_HISTORY_DAYS}</maxHistory>
+                <totalSizeCap>${LOG_FILE_TOTAL_SIZE_CAP}</totalSizeCap>
+            </rollingPolicy>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%-15.15t] %-40.40logger{39} : %m%n%wEx</pattern>
+                <charset>${FILE_LOG_CHARSET}</charset>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- prod: one JSON object per line (Elastic Common Schema) to both console and file, for
+         log-aggregation tools (ELK/Datadog/CloudWatch Logs Insights/etc.) to parse without a
+         separate log-shipper config. Built into Spring Boot 4 — no extra dependency required. -->
+    <springProfile name="prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+                <format>ecs</format>
+            </encoder>
+        </appender>
+
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_FILE}-%d{yyyy-MM-dd}.log</fileNamePattern>
+                <maxHistory>${LOG_FILE_MAX_HISTORY_DAYS}</maxHistory>
+                <totalSizeCap>${LOG_FILE_TOTAL_SIZE_CAP}</totalSizeCap>
+            </rollingPolicy>
+            <encoder class="org.springframework.boot.logging.logback.StructuredLogEncoder">
+                <format>ecs</format>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+</configuration>

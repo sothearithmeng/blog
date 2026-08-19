@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: blog
+  profiles:
+    # Falls back to dev only when nothing else sets an active profile (env var, JVM arg, etc.) —
+    # that still wins over this. Production deploys must set SPRING_PROFILES_ACTIVE=prod explicitly.
+    default: dev
+  datasource:
+    # Beginner-friendly local defaults. A student-managed PostgreSQL instance may use these as-is;
+    # override them with DB_URL, DB_USERNAME, and DB_PASSWORD in every shared environment.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        # Pin JDBC to UTC regardless of host/DB default TZ, so Instant columns round-trip
+        # identically across machines instead of depending on where the app happens to run.
+        jdbc:
+          time_zone: UTC
+  jackson:
+    time-zone: UTC
+  threads:
+    virtual:
+      enabled: true
+
+app:
+  cors:
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - Content-Type
+      - Authorization
+    # allowed-origins is intentionally not set here — see application-dev.yml / application-prod.yml.
+    # An empty list means CorsConfig disables CORS entirely (deny by default).
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+# Baseline: expose only the health endpoint until a profile widens or narrows it further.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

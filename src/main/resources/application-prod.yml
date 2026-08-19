@@ -1,0 +1,75 @@
+# Production profile. Activate with SPRING_PROFILES_ACTIVE=prod (or --spring.profiles.active=prod).
+# Favors safety and stability: no Hibernate schema auto-migration, minimal logging, no leaked error
+# detail, a tuned connection pool, and CORS/observability locked down to what's explicitly configured.
+spring:
+  # Keep this explicit: Flyway, not Hibernate, applies the versioned schema changes in prod.
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      # Never let Hibernate change the schema in production. Manage migrations explicitly
+      # (Flyway/Liquibase) and let this only verify the schema matches what entities expect.
+      ddl-auto: validate
+    show-sql: false
+  datasource:
+    # No defaults here (unlike application.yml's dev-friendly fallbacks): a forgotten env var
+    # in production must fail fast at startup, not silently connect with a guessable credential.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      pool-name: blog-hikari-pool
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:10}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      # Logs a warning with a stack trace if a connection is held this long — catches leaks
+      # (a service method that forgets to close/return a connection) before they exhaust the pool.
+      leak-detection-threshold: 30000
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  web:
+    error:
+      include-message: never
+      include-binding-errors: never
+      include-stacktrace: never
+      include-exception: false
+
+server:
+  shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain
+    min-response-size: 1024
+
+app:
+  cors:
+    # Required, comma-separated, no wildcard: e.g. CORS_ALLOWED_ORIGINS=https://app.example.com
+    # Startup fails fast if this isn't set, rather than silently allowing no/any origin.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allow-credentials: ${CORS_ALLOW_CREDENTIALS:false}
+
+springdoc:
+  swagger-ui:
+    enabled: false
+  api-docs:
+    enabled: false
+
+logging:
+  level:
+    root: WARN
+    com.kshrd.blog: INFO
+    org.hibernate.SQL: WARN
+
+# Only health/info are exposed, and health hides details from unauthenticated callers.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
