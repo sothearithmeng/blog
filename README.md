@@ -28,8 +28,9 @@ Included out of the box:
 
 No profile needs to be set explicitly — the app falls back to `dev` when nothing else says
 otherwise (see [Environments / profiles](#environments--profiles)). `.env.example` lists every
-env var the app reads, with defaults and which ones `prod` requires — copy it to `.env` and
-adjust, or export the values directly as shown below.
+env var the app reads, with defaults and which ones `prod` requires; `.env.dev.example` and
+`.env.prod.example` are trimmed-down, ready-to-copy starting points for each environment — copy
+whichever fits to `.env` and adjust, or export the values directly as shown below.
 
 ```powershell
 # Needed only when your local PostgreSQL settings differ from the defaults.
